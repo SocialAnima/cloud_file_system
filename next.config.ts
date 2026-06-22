@@ -1,8 +1,13 @@
 import type { NextConfig } from "next";
 
+const basePath = process.env.BASE_PATH || "/cloud_file_system";
+
 const nextConfig: NextConfig = {
   output: "standalone",
-  /* config options here */
+  basePath,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

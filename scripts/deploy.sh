@@ -17,6 +17,7 @@ APP_PORT="${APP_PORT:-3000}"
 DOMAIN="${DOMAIN:-}"
 INSTALL_DIR="${INSTALL_DIR:-}"
 APP_USER="${APP_USER:-}"
+BASE_PATH="${BASE_PATH:-/cloud_file_system}"
 SKIP_CADDY="${SKIP_CADDY:-0}"
 UPDATE_ONLY="${UPDATE_ONLY:-0}"
 SKIP_SYSTEM_PACKAGES="${SKIP_SYSTEM_PACKAGES:-0}"
@@ -45,6 +46,7 @@ usage() {
   --port <端口>           应用内部端口（默认 3000）
   --dir <路径>            项目安装目录（默认：脚本所在项目根目录）
   --user <用户名>         运行服务的系统用户（默认：当前登录用户）
+  --base-path <路径>      网站子路径（默认 /cloud_file_system）
   --skip-caddy            跳过 Caddy 安装与配置（仅启动应用服务）
   --skip-packages         跳过 apt 系统包安装
   --update                更新模式：不安装系统依赖，重新构建并重启服务
@@ -56,7 +58,7 @@ usage() {
   sudo ./scripts/deploy.sh --update
 
 环境变量（可选）:
-  APP_NAME, APP_PORT, DOMAIN, INSTALL_DIR, APP_USER
+  APP_NAME, APP_PORT, DOMAIN, INSTALL_DIR, APP_USER, BASE_PATH
 
 部署前请确保云厂商安全组已放行: 22, 80, 443
 EOF
@@ -69,6 +71,7 @@ while [[ $# -gt 0 ]]; do
     --port) APP_PORT="$2"; shift 2 ;;
     --dir) INSTALL_DIR="$2"; shift 2 ;;
     --user) APP_USER="$2"; shift 2 ;;
+    --base-path) BASE_PATH="$2"; shift 2 ;;
     --skip-caddy) SKIP_CADDY=1; shift ;;
     --skip-packages) SKIP_SYSTEM_PACKAGES=1; shift ;;
     --update) UPDATE_ONLY=1; shift ;;
@@ -76,6 +79,10 @@ while [[ $# -gt 0 ]]; do
     *) error "未知参数: $1"; usage; exit 1 ;;
   esac
 done
+
+# 规范化 BASE_PATH（必须以 / 开头，不以 / 结尾）
+BASE_PATH="/${BASE_PATH#/}"
+BASE_PATH="${BASE_PATH%/}"
 
 # ─── 基础检查 ────────────────────────────────────────────────
 if [[ "$(uname -s)" != "Linux" ]]; then
@@ -123,9 +130,9 @@ info "项目目录: $INSTALL_DIR"
 info "运行用户: $APP_USER"
 info "应用端口: $APP_PORT"
 if [[ -n "$DOMAIN" ]]; then
-  info "访问域名: https://$DOMAIN"
+  info "访问地址: https://${DOMAIN}${BASE_PATH}"
 else
-  info "访问方式: http://<公网IP>"
+  info "访问路径: http://<公网IP>${BASE_PATH}"
 fi
 
 # ─── 安装系统依赖 ────────────────────────────────────────────
@@ -200,13 +207,19 @@ setup_env() {
   chown -R "$APP_USER:$APP_USER" "$INSTALL_DIR/db" "$INSTALL_DIR/uploads"
 
   if [[ -f "$ENV_FILE" ]]; then
-    ok "保留已有 .env"
+    if grep -q '^BASE_PATH=' "$ENV_FILE"; then
+      sed -i "s|^BASE_PATH=.*|BASE_PATH=${BASE_PATH}|" "$ENV_FILE"
+    else
+      echo "BASE_PATH=${BASE_PATH}" >> "$ENV_FILE"
+    fi
+    ok "已更新 .env 中的 BASE_PATH"
     return
   fi
 
   info "创建 .env..."
   cat > "$ENV_FILE" <<EOF
 DATABASE_URL=file:${DB_PATH}
+BASE_PATH=${BASE_PATH}
 EOF
   chown "$APP_USER:$APP_USER" "$ENV_FILE"
   ok ".env 已创建"
@@ -226,8 +239,8 @@ build_app() {
   info "初始化数据库..."
   run_as_user "$bun_path run db:push"
 
-  info "构建生产版本（可能需要几分钟）..."
-  run_as_user "$bun_path run build"
+  info "构建生产版本（basePath: ${BASE_PATH}，可能需要几分钟）..."
+  run_as_user "BASE_PATH='${BASE_PATH}' $bun_path run build"
 
   ok "应用构建完成"
 }
@@ -316,8 +329,8 @@ health_check() {
   local i=0
 
   while [[ $i -lt $retries ]]; do
-    if curl -fsS "http://127.0.0.1:${APP_PORT}/api" >/dev/null 2>&1; then
-      ok "应用响应正常 (http://127.0.0.1:${APP_PORT})"
+    if curl -fsS "http://127.0.0.1:${APP_PORT}${BASE_PATH}/api" >/dev/null 2>&1; then
+      ok "应用响应正常 (http://127.0.0.1:${APP_PORT}${BASE_PATH})"
       return
     fi
     i=$((i + 1))
@@ -325,7 +338,7 @@ health_check() {
   done
 
   warn "健康检查未通过，服务可能仍在启动中"
-  warn "手动检查: curl http://127.0.0.1:${APP_PORT}/api"
+  warn "手动检查: curl http://127.0.0.1:${APP_PORT}${BASE_PATH}/api"
 }
 
 # ─── 打印部署结果 ────────────────────────────────────────────
@@ -339,10 +352,12 @@ print_summary() {
   echo "上传目录:   $INSTALL_DIR/uploads"
   echo "服务名称:   $APP_NAME"
   echo ""
+  echo "访问路径:   ${BASE_PATH}"
   if [[ -n "$DOMAIN" ]]; then
-    echo "访问地址:   https://$DOMAIN"
+    echo "访问地址:   https://${DOMAIN}${BASE_PATH}"
   else
-    echo "访问地址:   http://<你的公网IP>"
+    echo "访问地址:   http://<你的公网IP>${BASE_PATH}"
+    echo "示例:       http://106.54.199.248${BASE_PATH}"
   fi
   echo "管理密码:   admin123（请登录后立即修改）"
   echo ""
@@ -360,6 +375,7 @@ print_summary() {
 main() {
   if [[ "$UPDATE_ONLY" == "1" ]]; then
     info "更新模式：重新构建并重启服务"
+    setup_env
     build_app
     setup_systemd
     health_check

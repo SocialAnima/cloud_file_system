@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
-import { destroySession, SESSION_COOKIE_NAME } from '@/lib/auth'
+import { destroySession, SESSION_COOKIE_NAME, getSessionCookieOptions } from '@/lib/auth'
 
 export async function POST() {
   try {
     await destroySession()
     const response = NextResponse.json({ success: true })
-    response.cookies.set(SESSION_COOKIE_NAME, '', { path: '/', maxAge: 0 })
+    const { path } = getSessionCookieOptions()
+    response.cookies.set(SESSION_COOKIE_NAME, '', { path, maxAge: 0 })
     return response
   } catch (error) {
     console.error('Logout error:', error)

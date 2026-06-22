@@ -3,7 +3,7 @@ import {
   verifyAndUpgradePassword,
   createSession,
   SESSION_COOKIE_NAME,
-  SESSION_COOKIE_OPTIONS,
+  getSessionCookieOptions,
 } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const token = await createSession()
     const response = NextResponse.json({ success: true })
-    response.cookies.set(SESSION_COOKIE_NAME, token, SESSION_COOKIE_OPTIONS)
+    response.cookies.set(SESSION_COOKIE_NAME, token, getSessionCookieOptions())
     return response
   } catch (error) {
     console.error('Login verify error:', error)

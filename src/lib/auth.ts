@@ -1,6 +1,8 @@
 import crypto from 'crypto'
 import { db } from './db'
 
+import { basePath } from './paths'
+
 const SALT_LENGTH = 16
 const KEY_LENGTH = 32
 const DEFAULT_PASSWORD = 'admin123'
@@ -8,12 +10,15 @@ const SESSION_KEY = 'admin_session'
 const PASSWORD_KEY = 'admin_password'
 
 export const SESSION_COOKIE_NAME = 'admin_session'
-export const SESSION_COOKIE_OPTIONS = {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict' as const,
-  path: '/',
-  maxAge: 60 * 60 * 24,
+
+export function getSessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    path: basePath || '/',
+    maxAge: 60 * 60 * 24,
+  }
 }
 
 export function hashPassword(password: string): string {

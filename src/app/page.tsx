@@ -57,6 +57,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { formatFileSize, getFileIcon, FILE_CATEGORIES, formatDate, getCategoryColor } from '@/lib/file-utils'
+import { apiPath } from '@/lib/paths'
 import { FileIconDisplay } from '@/components/file-icon-display'
 import { StatCard } from '@/components/stat-card'
 import { FileCard } from '@/components/file-card'
@@ -109,7 +110,7 @@ export default function Home() {
   const [changingPwd, setChangingPwd] = useState(false)
 
   useEffect(() => {
-    fetch('/api/settings/session')
+    fetch(apiPath('/api/settings/session'))
       .then(res => res.json())
       .then(data => { if (data.authenticated) setIsAdmin(true) })
       .catch(() => {})
@@ -123,7 +124,7 @@ export default function Home() {
         page: page.toString(),
         pageSize: '12',
       })
-      const res = await fetch(`/api/files?${params}`)
+      const res = await fetch(apiPath(`/api/files?${params}`))
       if (res.ok) {
         const data = await res.json()
         setFiles(data.files)
@@ -139,7 +140,7 @@ export default function Home() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch('/api/files/stats')
+      const res = await fetch(apiPath('/api/files/stats'))
       if (res.ok) setStats(await res.json())
     } catch { /* silent */ }
   }, [])
@@ -163,7 +164,7 @@ export default function Home() {
         setUploadProgress(prev => Math.min(prev + Math.random() * 20, 90))
       }, 200)
 
-      const res = await fetch('/api/files/upload', { method: 'POST', body: formData })
+      const res = await fetch(apiPath('/api/files/upload'), { method: 'POST', body: formData })
       clearInterval(progressInterval)
 
       if (res.status === 401) {
@@ -202,7 +203,7 @@ export default function Home() {
 
   const handleDownload = async (file: ResourceFile) => {
     try {
-      const res = await fetch(`/api/files/${file.id}/download`)
+      const res = await fetch(apiPath(`/api/files/${file.id}/download`))
       if (!res.ok) {
         toast({ title: '下载失败', description: '文件可能已丢失', variant: 'destructive' })
         return
@@ -227,7 +228,7 @@ export default function Home() {
   const handleDelete = async () => {
     if (!deleteTarget) return
     try {
-      const res = await fetch(`/api/files/${deleteTarget.id}`, { method: 'DELETE' })
+      const res = await fetch(apiPath(`/api/files/${deleteTarget.id}`), { method: 'DELETE' })
       if (res.status === 401) {
         setIsAdmin(false)
         toast({ title: '登录已过期', description: '请重新登录管理员', variant: 'destructive' })
@@ -249,7 +250,7 @@ export default function Home() {
 
   const handleAdminLogin = async () => {
     try {
-      const res = await fetch('/api/settings/login', {
+      const res = await fetch(apiPath('/api/settings/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: adminPassword }),
@@ -269,7 +270,7 @@ export default function Home() {
   }
 
   const handleLogout = async () => {
-    await fetch('/api/settings/logout', { method: 'POST' }).catch(() => {})
+    await fetch(apiPath('/api/settings/logout'), { method: 'POST' }).catch(() => {})
     setIsAdmin(false)
     toast({ title: '已退出管理模式' })
   }
@@ -289,7 +290,7 @@ export default function Home() {
     }
     setChangingPwd(true)
     try {
-      const res = await fetch('/api/settings/password', {
+      const res = await fetch(apiPath('/api/settings/password'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd }),

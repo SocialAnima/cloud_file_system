@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { basePath } from "@/lib/paths";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   title: "资源下载中心",
   description: "上传、浏览和下载文件资源",
   icons: {
-    icon: "/logo.svg",
+    icon: `${basePath}/logo.svg`,
   },
 };
 
