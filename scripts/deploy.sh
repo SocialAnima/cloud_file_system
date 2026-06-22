@@ -206,23 +206,13 @@ setup_env() {
   mkdir -p "$INSTALL_DIR/db" "$INSTALL_DIR/uploads"
   chown -R "$APP_USER:$APP_USER" "$INSTALL_DIR/db" "$INSTALL_DIR/uploads"
 
-  if [[ -f "$ENV_FILE" ]]; then
-    if grep -q '^BASE_PATH=' "$ENV_FILE"; then
-      sed -i "s|^BASE_PATH=.*|BASE_PATH=${BASE_PATH}|" "$ENV_FILE"
-    else
-      echo "BASE_PATH=${BASE_PATH}" >> "$ENV_FILE"
-    fi
-    ok "已更新 .env 中的 BASE_PATH"
-    return
-  fi
-
-  info "创建 .env..."
+  info "写入 .env..."
   cat > "$ENV_FILE" <<EOF
 DATABASE_URL=file:${DB_PATH}
 BASE_PATH=${BASE_PATH}
 EOF
   chown "$APP_USER:$APP_USER" "$ENV_FILE"
-  ok ".env 已创建"
+  ok ".env 已创建 (DB: ${DB_PATH})"
 }
 
 # ─── 构建应用 ────────────────────────────────────────────────
