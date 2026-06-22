@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import {
   verifyAndUpgradePassword,
-  createSession,
-  SESSION_COOKIE_NAME,
-  getSessionCookieOptions,
 } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
@@ -19,10 +16,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '密码错误' }, { status: 403 })
     }
 
-    const token = await createSession()
-    const response = NextResponse.json({ success: true })
-    response.cookies.set(SESSION_COOKIE_NAME, token, getSessionCookieOptions())
-    return response
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Login verify error:', error)
     return NextResponse.json({ error: '验证失败' }, { status: 500 })

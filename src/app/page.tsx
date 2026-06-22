@@ -109,13 +109,6 @@ export default function Home() {
   const [confirmPwd, setConfirmPwd] = useState('')
   const [changingPwd, setChangingPwd] = useState(false)
 
-  useEffect(() => {
-    fetch(apiPath('/api/settings/session'))
-      .then(res => res.json())
-      .then(data => { if (data.authenticated) setIsAdmin(true) })
-      .catch(() => {})
-  }, [])
-
   const fetchFiles = useCallback(async () => {
     setLoading(true)
     try {
@@ -166,14 +159,6 @@ export default function Home() {
 
       const res = await fetch(apiPath('/api/files/upload'), { method: 'POST', body: formData })
       clearInterval(progressInterval)
-
-      if (res.status === 401) {
-        setIsAdmin(false)
-        toast({ title: '登录已过期', description: '请重新登录管理员', variant: 'destructive' })
-        setUploadOpen(false)
-        resetUploadForm()
-        return
-      }
 
       if (res.ok) {
         setUploadProgress(100)
@@ -229,11 +214,6 @@ export default function Home() {
     if (!deleteTarget) return
     try {
       const res = await fetch(apiPath(`/api/files/${deleteTarget.id}`), { method: 'DELETE' })
-      if (res.status === 401) {
-        setIsAdmin(false)
-        toast({ title: '登录已过期', description: '请重新登录管理员', variant: 'destructive' })
-        return
-      }
       if (res.ok) {
         toast({ title: '删除成功', description: `${deleteTarget.originalName} 已删除` })
         fetchFiles()
@@ -270,7 +250,6 @@ export default function Home() {
   }
 
   const handleLogout = async () => {
-    await fetch(apiPath('/api/settings/logout'), { method: 'POST' }).catch(() => {})
     setIsAdmin(false)
     toast({ title: '已退出管理模式' })
   }
@@ -295,12 +274,6 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd }),
       })
-      if (res.status === 401) {
-        setIsAdmin(false)
-        toast({ title: '登录已过期', description: '请重新登录管理员', variant: 'destructive' })
-        setShowChangePwd(false)
-        return
-      }
       if (res.ok) {
         toast({ title: '密码修改成功', description: '下次登录请使用新密码' })
         setShowChangePwd(false)

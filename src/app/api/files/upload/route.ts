@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifySession } from '@/lib/auth'
 import { mkdir } from 'fs/promises'
 import { createWriteStream } from 'fs'
 import { statSync } from 'fs'
@@ -18,11 +17,6 @@ const MAX_FILE_SIZE = 100 * 1024 * 1024
 
 export async function POST(request: NextRequest) {
   try {
-    const isAdmin = await verifySession(request)
-    if (!isAdmin) {
-      return NextResponse.json({ error: '未授权操作' }, { status: 401 })
-    }
-
     const contentType = request.headers.get('content-type') || ''
     if (!contentType.includes('multipart/form-data')) {
       return NextResponse.json({ error: '请求格式错误' }, { status: 400 })

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifySession, getAdminPassword, verifyPassword, setAdminPassword } from '@/lib/auth'
+import { getAdminPassword, verifyPassword, setAdminPassword } from '@/lib/auth'
 
 export async function GET() {
   try {
@@ -14,11 +14,6 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const isAdmin = await verifySession(request)
-    if (!isAdmin) {
-      return NextResponse.json({ error: '未授权操作' }, { status: 401 })
-    }
-
     const { oldPassword, newPassword } = await request.json()
 
     if (!oldPassword || !newPassword) {

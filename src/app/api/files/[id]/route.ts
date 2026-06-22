@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { verifySession } from '@/lib/auth'
 import { unlink } from 'fs/promises'
 import path from 'path'
 
@@ -9,11 +8,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const isAdmin = await verifySession(request)
-    if (!isAdmin) {
-      return NextResponse.json({ error: '未授权操作' }, { status: 401 })
-    }
-
     const { id } = await params
 
     const file = await db.resourceFile.findUnique({ where: { id } })
