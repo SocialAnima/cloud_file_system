@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { createReadStream, statSync } from 'fs'
-import { Readable } from 'stream'
+import { readFile } from 'fs/promises'
 import path from 'path'
 
 export const runtime = 'nodejs'
@@ -19,9 +18,9 @@ export async function GET(
     }
 
     const absolutePath = path.join(process.cwd(), file.filePath)
-    let stat
+    let buffer: Buffer
     try {
-      stat = statSync(absolutePath)
+      buffer = await readFile(absolutePath)
     } catch {
       return NextResponse.json({ error: '文件已丢失' }, { status: 404 })
     }
@@ -32,14 +31,11 @@ export async function GET(
     }).catch(() => {})
 
     const encodedName = encodeURIComponent(file.originalName).replace(/'/g, '%27')
-    const nodeStream = createReadStream(absolutePath)
-    const webStream = Readable.toWeb(nodeStream) as ReadableStream
-
-    return new Response(webStream, {
+    return new NextResponse(buffer, {
       headers: {
         'Content-Type': file.mimeType || 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${encodedName}"; filename*=UTF-8''${encodedName}`,
-        'Content-Length': stat.size.toString(),
+        'Content-Length': buffer.length.toString(),
         'Cache-Control': 'no-cache',
       },
     })

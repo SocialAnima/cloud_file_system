@@ -188,20 +188,14 @@ export default function Home() {
 
   const handleDownload = async (file: ResourceFile) => {
     try {
-      const res = await fetch(apiPath(`/api/files/${file.id}/download`))
-      if (!res.ok) {
-        toast({ title: '下载失败', description: '文件可能已丢失', variant: 'destructive' })
-        return
-      }
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      // 不使用 fetch+blob：很多浏览器会把“异步后触发的 a.click()”当作非用户手势从而拦截下载
+      const url = apiPath(`/api/files/${file.id}/download`)
       const a = document.createElement('a')
       a.href = url
-      a.download = file.originalName
+      // 让浏览器按响应头 Content-Disposition 处理下载（文件名也由服务端决定更可靠）
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-      URL.revokeObjectURL(url)
 
       setFiles(prev => prev.map(f => f.id === file.id ? { ...f, downloadCount: f.downloadCount + 1 } : f))
       fetchStats()
